@@ -5,8 +5,9 @@ const ReportPage: React.FC = () => {
   const { keycloak, initialized } = useKeycloak();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [report, setReport] = useState<string | null>(null);
 
-  const downloadReport = async () => {
+  const getReport = async () => {
     if (!keycloak?.token) {
       setError('Not authenticated');
       return;
@@ -15,6 +16,7 @@ const ReportPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
+      setReport(null);
 
       const response = await fetch(`${process.env.REACT_APP_API_URL}/reports`, {
         headers: {
@@ -22,6 +24,13 @@ const ReportPage: React.FC = () => {
         }
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch report: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      setReport(data.data);
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -53,18 +62,25 @@ const ReportPage: React.FC = () => {
         <h1 className="text-2xl font-bold mb-6">Usage Reports</h1>
         
         <button
-          onClick={downloadReport}
+          onClick={getReport}
           disabled={loading}
           className={`px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 ${
             loading ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
-          {loading ? 'Generating Report...' : 'Download Report'}
+          {loading ? 'Generating Report...' : 'Get Report'}
         </button>
 
         {error && (
           <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">
-            {error}
+            Error: {error}
+          </div>
+        )}
+
+        {report && (
+          <div className="mt-4 p-4 bg-green-100 text-green-700 rounded">
+            <h2 className="text-lg font-semibold">Report Data:</h2>
+            <p>{report}</p>
           </div>
         )}
       </div>
